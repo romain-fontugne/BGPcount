@@ -19,11 +19,22 @@ def find_noisiest_prefixes(bc, top=100):
     noisyind = ind[np.argsort(totalCount[ind])]
 
     for i in noisyind:
+        af = 0
+        if "." in nodes[i].prefix:
+            #IPv4
+            af = 4
+        else:
+            af = 6
         peercount = nodes[i].data["peerCount"]
         uniqAS = set([ asn for asnSet in bc.peerAS.values() for asn in asnSet])
         ascount = defaultdict(list) 
 
         for peerIP, count in peercount.iteritems():
+            if "." in peerIP and af == 6:
+                continue
+            elif ":" in peerIP and af == 4:
+                continue
+
             asList = list(bc.peerAS[peerIP])
             try:
                 asList.remove("0")

@@ -7,6 +7,7 @@ import glob
 import networkx as nx
 import radix
 
+
 def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i+n]
@@ -35,9 +36,17 @@ class bgpCounter(object):
         return node
 
 
-
     def read_rib(self, files):
-        """Read RIB files and populate the routing table and AS graph.
+        """Read RIB local files with libbgpdump and populate the routing table 
+        and AS graph.
+        """
+
+        self.read_rib_bgpdump(files)
+
+
+    def read_rib_bgpdump(self, files):
+        """Read RIB local files with libbgpdump and populate the routing table 
+        and AS graph.
         """
 
         for f in glob.glob(files):
@@ -63,8 +72,49 @@ class bgpCounter(object):
                 for a0, a1 in zip(path[:-1], path[1:]):
                     self.asgraph.add_edge(a0,a1)
 
+    
+    def read_rib_bgpstream(self, ts, te, af=4):
+        """Read RIB files with bgpstream and populate the routing table 
+        and AS graph.
+        """
+        # create a new bgpstream instance
+        stream = BGPStream()
+        bgprFilter = "type ribs and ipversion %s" % af
+        stream.parse_filter_string(bgprFilter)
+        stream.add_interval_filter(ts, te)
+        stream.start()
+
+        # create a reusable bgprecord instance
+        rec = BGPRecord()
+        while(stream.get_next_record(rec)):
+            zDt = rec.time
+            elem = rec.get_next_elem()
+            while(elem):
+                zOrig = elem.peer_address
+                zAS = elem.peer_asn
+                zPfx = elem.fields["prefix"]
+                sPath = elem.fields["as-path"]
+                print("%s: %s, %s, %s" % (zDt, zAS, zPfx, elem.fields))
+
+                path = sPath.split(" ")
+
+                # update routing table
+		node = self.__getNode(zPfx)
+                node.data["peerCount"][zOrig] = 0
+                self.peerAS[zOrig].add(zAS)
+                node.data["origAS"].add(path[-1])
+
+                # update AS graph
+                for a0, a1 in zip(path[:-1], path[1:]):
+                    self.asgraph.add_edge(a0,a1)
+
+
 
     def read_update(self, files):
+        self.read_update_bgpdump(files)
+
+
+    def read_update_bgpdump(self, files):
         """Read UPDATE files and count the number of message per peer. 
         """
         
@@ -104,6 +154,41 @@ class bgpCounter(object):
                 node.data["peerCount"][zOrig] += 1
                 self.peerAS[zOrig].add(zAS)
 
+
+    def read_update_bgpstream(self, ts, te, af=4):
+        """Read UPDATE files with bgpstream and count for each prefix the number 
+        of messages per peer.
+        """
+        # create a new bgpstream instance
+        stream = BGPStream()
+        bgprFilter = "type updates and ipversion %s" % af
+        stream.parse_filter_string(bgprFilter)
+        stream.add_interval_filter(ts, te)
+        stream.start()
+
+        # create a reusable bgprecord instance
+        rec = BGPRecord()
+        while(stream.get_next_record(rec)):
+            zDt = rec.time
+            elem = rec.get_next_elem()
+            while(elem):
+                zOrig = elem.peer_address
+                zAS = elem.peer_asn
+                zPfx = elem.fields["prefix"]
+                sPath = elem.fields["as-path"]
+                print("%s: %s, %s, %s" % (zDt, zAS, zPfx, elem.fields))
+
+                path = sPath.split(" ")
+
+                # update routing table
+		node = self.__getNode(zPfx)
+                node.data["peerCount"][zOrig] = 0
+                self.peerAS[zOrig].add(zAS)
+                node.data["origAS"].add(path[-1])
+
+                # update AS graph
+                for a0, a1 in zip(path[:-1], path[1:]):
+                    self.asgraph.add_edge(a0,a1)
 
 
     def save_graph(self, filename):

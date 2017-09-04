@@ -62,20 +62,25 @@ if __name__ == "__main__":
     else:
         bc = bgpCounter.bgpCounter()
     
-        logging.info("Read RV RIB files...")
-        bc.read_rib("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/RIBS/rib.20160601.0000.bz2")
-        logging.info("Read RIS RIB files...")
-        bc.read_rib("/data/ris/*/2016.06/bview.20160601.0000.gz")
+        # logging.info("Read RV RIB files...")
+        # bc.read_rib("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/RIBS/rib.20160601.0000.bz2")
+        # logging.info("Read RIS RIB files...")
+        # bc.read_rib("/data/ris/*/2016.06/bview.20160601.0000.gz")
+        logging.info("Read RIB files...")
+        ts = 1464735600
+        te = 1464742800
+        bc.read_rib(ts, te, af=4)
 
         pickle.dump(bc, open("saved_bc_afterRIB.pickle","wb"),protocol=2)
 
-        logging.info("Read RV UPDATE files...")
-        bc.read_update("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/UPDATES/updates.20160601.*.bz2")
-        logging.info("Read RIS UPDATE files...")
-        bc.read_update("/data/ris/*/2016.06/updates.20160601.*.gz")
+        # logging.info("Read RV UPDATE files...")
+        # bc.read_update("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/UPDATES/updates.20160601.*.bz2")
+        # logging.info("Read RIS UPDATE files...")
+        # bc.read_update("/data/ris/*/2016.06/updates.20160601.*.gz")
 
-        pickle.dump(bc, open(pickleFile,"wb"),protocol=2)
+        # pickle.dump(bc, open(pickleFile,"wb"),protocol=2)
 
-    #bc.save_graph("AS_graph.txt")
-    logging.info("Finding noisiest prefixes...")
-    find_noisiest_prefixes(bc)
+    logging.info("Saving graph...")
+    bc.save_graph("AS_graph.txt")
+    # logging.info("Finding noisiest prefixes...")
+    # find_noisiest_prefixes(bc)

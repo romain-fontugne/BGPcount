@@ -70,9 +70,9 @@ if __name__ == "__main__":
         logging.info("Read RIB files...")
         ts = 1464735600
         te = 1464742800
-        bc.read_rib(ts, te, af=4)
+        bc.read_rib_bgpstream(ts, te, af=4)
 
-        pickle.dump(bc, open("saved_bc_afterRIB.pickle","wb"),protocol=2)
+        pickle.dump(bc, open("saved_bc_afterRIB.pickle","wb"),protocol=3)
 
         # logging.info("Read RV UPDATE files...")
         # bc.read_update("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/UPDATES/updates.20160601.*.bz2")

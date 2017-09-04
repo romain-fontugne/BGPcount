@@ -6,6 +6,7 @@ import glob
 
 import networkx as nx
 import radix
+from _pybgpstream import BGPStream, BGPRecord, BGPElem
 
 
 def chunks(l, n):

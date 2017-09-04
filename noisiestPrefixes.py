@@ -6,7 +6,6 @@ import numpy as np
 from collections import defaultdict
 
 import bgpCounter
-from _pybgpstream import BGPStream, BGPRecord, BGPElem
 
 
 def find_noisiest_prefixes(bc, top=100):

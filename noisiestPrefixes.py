@@ -54,6 +54,7 @@ def find_noisiest_prefixes(bc, top=100):
 
 if __name__ == "__main__":
 
+    logging.basicConfig(level=logging.DEBUG)
     pickleFile = "saved_bc_afterUPDATE.pickle"
     if os.path.exists(pickleFile):
         logging.info("Load data from pickle")

@@ -88,6 +88,8 @@ class bgpCounter(object):
         # create a reusable bgprecord instance
         rec = BGPRecord()
         while(stream.get_next_record(rec)):
+            if rec.status  != "valid":
+                print rec.project, rec.collector, rec.type, rec.time, rec.status
             zDt = rec.time
             elem = rec.get_next_elem()
             while(elem):
@@ -95,7 +97,7 @@ class bgpCounter(object):
                 zAS = elem.peer_asn
                 zPfx = elem.fields["prefix"]
                 sPath = elem.fields["as-path"]
-                print("%s: %s, %s, %s" % (zDt, zAS, zPfx, elem.fields))
+                # print("%s: %s, %s, %s" % (zDt, zAS, zPfx, elem.fields))
 
                 path = sPath.split(" ")
 
@@ -108,6 +110,8 @@ class bgpCounter(object):
                 # update AS graph
                 for a0, a1 in zip(path[:-1], path[1:]):
                     self.asgraph.add_edge(a0,a1)
+
+                elem = rec.get_next_elem()
 
 
 
@@ -155,10 +159,10 @@ class bgpCounter(object):
                 node.data["peerCount"][zOrig] += 1
                 self.peerAS[zOrig].add(zAS)
 
-
+    
     def read_update_bgpstream(self, ts, te, af=4):
-        """Read UPDATE files with bgpstream and count for each prefix the number 
-        of messages per peer.
+        """Read UPDATE files with bgpstream and populate the routing table 
+        and AS graph.
         """
         # create a new bgpstream instance
         stream = BGPStream()
@@ -170,26 +174,43 @@ class bgpCounter(object):
         # create a reusable bgprecord instance
         rec = BGPRecord()
         while(stream.get_next_record(rec)):
+            if rec.status  != "valid":
+                print rec.project, rec.collector, rec.type, rec.time, rec.status
             zDt = rec.time
             elem = rec.get_next_elem()
             while(elem):
                 zOrig = elem.peer_address
                 zAS = elem.peer_asn
                 zPfx = elem.fields["prefix"]
-                sPath = elem.fields["as-path"]
-                print("%s: %s, %s, %s" % (zDt, zAS, zPfx, elem.fields))
-
-                path = sPath.split(" ")
-
                 # update routing table
 		node = self.__getNode(zPfx)
-                node.data["peerCount"][zOrig] = 0
+                # print("%s: (%s) %s, %s, %s" % (zDt, elem.type, zAS, zPfx, elem.fields))
+
+		if elem.type != "A":
+                    elem = rec.get_next_elem()
+		    continue 
+
+		else:
+                    sPath = elem.fields["as-path"]
+		    #zTd, zDt, zS, zOrig, zAS, zPfx, sPath, zPro, zOr, z0, z1, z2, z3, z4, z5 = res
+
+		    path = sPath.split(" ")
+                    node.data["origAS"].add(path[-1])
+
+                    # update AS graph
+                    for a0, a1 in zip(path[:-1], path[1:]):
+                        self.asgraph.add_edge(a0,a1)
+
+                node.data["peerCount"][zOrig] += 1
                 self.peerAS[zOrig].add(zAS)
-                node.data["origAS"].add(path[-1])
+
+                path = sPath.split(" ")
 
                 # update AS graph
                 for a0, a1 in zip(path[:-1], path[1:]):
                     self.asgraph.add_edge(a0,a1)
+
+                elem = rec.get_next_elem()
 
 
     def save_graph(self, filename):

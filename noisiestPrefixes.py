@@ -6,7 +6,7 @@ import numpy as np
 from collections import defaultdict
 
 import bgpCounter
-
+import datetime
 
 def find_noisiest_prefixes(bc, top=100):
     nodes = bc.rtree.nodes()
@@ -45,7 +45,10 @@ def find_noisiest_prefixes(bc, top=100):
                 logging.warning("Peer IP (%s) corresponds to more than one AS (%s)" % (peerIP, asList))
             ascount[asn].append(count)
 
-        fi = open("noisiestPrefixes/%s_AS%s_msg%s.txt" % (nodes[i].prefix.replace("/","_"), "_".join(list(nodes[i].data["origAS"])), totalCount[i] ), "w")
+        if len(nodes[i].data["origAS"]) > 10:
+            fi = open("noisiestPrefixes/%s_MOAS_msg%s.txt" % (nodes[i].prefix.replace("/","_"), totalCount[i] ), "w")
+        else:
+            fi = open("noisiestPrefixes/%s_AS%s_msg%s.txt" % (nodes[i].prefix.replace("/","_"), "_".join(list(nodes[i].data["origAS"])), totalCount[i] ), "w")
         for asn, count in ascount.iteritems(): 
             fi.write("%s\t%s\n" % (asn, count))
 
@@ -55,24 +58,33 @@ def find_noisiest_prefixes(bc, top=100):
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
+    logging.info("Started %s." % datetime.datetime.today())
     pickleFile = "saved_bc_afterUPDATE.pickle"
     if os.path.exists(pickleFile):
-        logging.info("Load data from pickle")
+        logging.info("Load RIB and UPDATE data from pickle")
         bc =pickle.load(open(pickleFile,"rb"))
 
     else:
-        bc = bgpCounter.bgpCounter()
-    
-        # logging.info("Read RV RIB files...")
-        # bc.read_rib("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/RIBS/rib.20160601.0000.bz2")
-        # logging.info("Read RIS RIB files...")
-        # bc.read_rib("/data/ris/*/2016.06/bview.20160601.0000.gz")
-        logging.info("Read RIB files...")
-        ts = 1464735600
-        te = 1464742800
-        bc.read_rib_bgpstream(ts, te, af=4)
+        pickleRibFile = "saved_bc_afterRIB.pickle"
+        if not os.path.exists(pickleRibFile):
 
-        pickle.dump(bc, open("saved_bc_afterRIB.pickle","wb"),protocol=3)
+            bc = bgpCounter.bgpCounter()
+        
+            # logging.info("Read RV RIB files...")
+            # bc.read_rib("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/RIBS/rib.20160601.0000.bz2")
+            # logging.info("Read RIS RIB files...")
+            # bc.read_rib("/data/ris/*/2016.06/bview.20160601.0000.gz")
+            logging.info("Read RIB files...")
+            ts = 1464735600
+            te = 1464742800
+            bc.read_rib_bgpstream(ts, te, af=4)
+
+            pickle.dump(bc, open(pickleRibFile,"wb"),protocol=2)
+
+        else:
+            logging.info("Load RIB data from pickle")
+            bc =pickle.load(open(pickleRibFile,"rb"))
+
 
         # logging.info("Read RV UPDATE files...")
         # bc.read_update("/data/routeviews/archive.routeviews.org/*/bgpdata/2016.06/UPDATES/updates.20160601.*.bz2")
@@ -80,8 +92,16 @@ if __name__ == "__main__":
         # bc.read_update("/data/ris/*/2016.06/updates.20160601.*.gz")
 
         # pickle.dump(bc, open(pickleFile,"wb"),protocol=2)
+        logging.info("Read UPDATE files...")
+        ts = 1464739200
+        te = 1464825600
+        bc.read_update_bgpstream(ts, te, af=4)
 
-    logging.info("Saving graph...")
-    bc.save_graph("AS_graph.txt")
-    # logging.info("Finding noisiest prefixes...")
-    # find_noisiest_prefixes(bc)
+        pickle.dump(bc, open(pickleFile,"wb"),protocol=2)
+
+        logging.info("Saving graph...")
+        bc.save_graph("AS_graph.txt")
+
+    logging.info("Finding noisiest prefixes...")
+    find_noisiest_prefixes(bc)
+    logging.info("Ended %s." % datetime.datetime.today())
